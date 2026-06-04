@@ -89,3 +89,6 @@ GOLD_RANKINGS_DAILY   = f"{LAKEHOUSE}.dbo.gold_rankings_daily"
 GOLD_CORRELATION      = f"{LAKEHOUSE}.dbo.gold_correlation_daily"
 GOLD_INTRADAY_SUMMARY = f"{LAKEHOUSE}.dbo.gold_intraday_summary"
 DASHBOARD_MEASURES    = f"{LAKEHOUSE}.dbo.dashboard_measures"
+
+PBI_WORKSPACE_ID = "your_workspace_id_here"
+PBI_DATASET_ID   = "your_dataset_id_here"

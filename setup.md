@@ -80,6 +80,21 @@ Enter Alpaca secret:
 4. Run notebooks in order: `Setup` → `ProcessBronze` → `ProcessSilver` → `CreateMeasures`
 
 ---
+## Step 8 — Connect Power BI Auto-Refresh
+
+To have the pipeline automatically refresh your Power BI semantic model after each run:
+
+1. Open your Power BI workspace in the browser
+2. Copy the **Workspace ID** from the URL:
+   `app.powerbi.com/groups/{WORKSPACE_ID}/...`
+3. Open your semantic model → Settings → copy the **Dataset ID** from the URL:
+   `app.powerbi.com/groups/.../datasets/{DATASET_ID}`
+4. Paste both into `core/config.py`:
+```python
+PBI_WORKSPACE_ID = "your_workspace_id_here"
+PBI_DATASET_ID   = "your_dataset_id_here"
+```
+5. If left as placeholders the pipeline will still run — only the Power BI refresh step will fail.
 
 ## Expected Run Times
 
