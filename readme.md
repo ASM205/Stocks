@@ -1,4 +1,6 @@
 
+📎 [Setup Guide](setup.md)
+
 # Sector Intelligence Pipeline — Bronze Layer
 
 **Platform:** Microsoft Fabric
@@ -414,3 +416,134 @@ After the pipeline completes, two validation queries run automatically:
 ### `silver_5min` / `silver_1min`
 
 Same as above except time columns replace daily calendar fields with intraday fields: `timestamp_et`, `hour`, `minute`, `session`. SMAs use 10- and 20-period windows instead of 20 and 50.
+
+# Sector Intelligence Pipeline — Gold Layer Documentation
+
+## Overview
+
+The Gold Layer is the final stage of the pipeline. It reads from the Silver tables and produces five analytical tables plus one consolidated dashboard snapshot, all optimised for Power BI consumption.
+
+**Source tables:** `silver_daily`, `silver_5min`
+
+**Output tables:**
+
+| Table | Description |
+|---|---|
+| `gold_sector_daily` | Daily sector-level rollups with breadth and volume metrics |
+| `gold_ticker_signals` | Per-ticker per-day technical signal flags |
+| `gold_rankings_daily` | Intra-sector rankings across four dimensions |
+| `gold_correlation_daily` | 30-day rolling pairwise return correlations within sectors |
+| `gold_intraday_summary` | Session-level (pre/regular/after) OHLCV aggregates from 5min bars |
+| `dashboard_measures` | Consolidated snapshot joining all gold tables — direct Power BI source |
+
+---
+
+## Pipeline Architecture
+
+```
+silver_daily (cached)
+     │
+     ├── build_sector_daily()       → gold_sector_daily
+     ├── build_ticker_signals()     → gold_ticker_signals
+     ├── build_rankings_daily()     → gold_rankings_daily
+     └── build_correlation()        → gold_correlation_daily
+
+silver_5min
+     └── build_intraday_summary()   → gold_intraday_summary
+
+All gold tables
+     └── consolidated join          → dashboard_measures
+```
+
+`silver_daily` is cached in memory since it feeds four of the five gold tables.
+
+All gold tables use **full overwrite** — gold is always recomputed from silver, no incremental logic.
+
+---
+
+## Table Descriptions
+
+### `gold_sector_daily`
+
+One row per sector per date. Aggregates all tickers within each sector into a single daily summary.
+
+**Key metrics:**
+- Volume-weighted average open and close prices
+- Total volume and transaction count
+- Breadth: count of advancing, declining, and unchanged tickers
+- Advance/decline ratio
+- Averaged RSI, MACD, volatility, SMA20, SMA50
+- Return spread (best return − worst return within sector that day)
+
+---
+
+### `gold_ticker_signals`
+
+One row per ticker per date. Classifies each bar against nine technical signal conditions.
+
+| Signal | Condition |
+|---|---|
+| `signal_rsi_overbought` | RSI > 70 |
+| `signal_rsi_oversold` | RSI < 30 |
+| `signal_macd_bullish_cross` | MACD crossed from negative to positive |
+| `signal_macd_bearish_cross` | MACD crossed from positive to negative |
+| `signal_bb_upper_touch` | Close ≥ Bollinger upper band |
+| `signal_bb_lower_touch` | Close ≤ Bollinger lower band |
+| `signal_golden_cross` | SMA20 crossed above SMA50 |
+| `signal_death_cross` | SMA20 crossed below SMA50 |
+| `signal_vol_spike` | Volatility > 2× its own 20-day average |
+| `any_signal` | Any of the above is true |
+
+Also carries the underlying indicator values (`rsi_14`, `macd`, `sma_20`, `sma_50`, `bb_upper`, `bb_lower`, `rolling_volatility`) for dashboard context.
+
+---
+
+### `gold_rankings_daily`
+
+One row per ticker per date. Ranks each ticker within its sector on four dimensions. Rank 1 = best in sector that day.
+
+| Rank Column | Ordered By |
+|---|---|
+| `return_rank_in_sector` | `daily_return` descending |
+| `rsi_rank_in_sector` | `rsi_14` descending |
+| `volatility_rank_in_sector` | `rolling_volatility` descending |
+| `volume_rank_in_sector` | `volume` descending |
+| `composite_rank_score` | Average of all four ranks (lower = more notable) |
+
+---
+
+### `gold_correlation_daily`
+
+One row per ticker pair per date. Computes 30-day rolling Pearson correlation of `daily_return` between every pair of tickers **within the same sector**.
+
+Cross-sector correlations are intentionally excluded — within-sector correlations are more actionable for diversification decisions.
+
+Only unique pairs are stored (ticker_a < ticker_b alphabetically) to avoid duplicates.
+
+Schema: `sector | date | ticker_a | ticker_b | correlation`
+
+---
+
+### `gold_intraday_summary`
+
+One row per ticker per date per session. Aggregates 5min bars into session-level OHLCV.
+
+Sessions: `pre` (04:00–09:29 ET), `regular` (09:30–15:59 ET), `after` (16:00–19:59 ET).
+
+Key derived column: `session_return = (session_close − session_open) / session_open` — how much price moved within that session.
+
+---
+
+### `dashboard_measures`
+
+A single wide table joining all five gold tables on `sector`. This is the direct source for Power BI — one connection, all metrics available.
+
+Column names are sanitised (spaces and special characters replaced with underscores) to ensure Power BI compatibility.
+
+---
+
+## Change Log
+
+| Version | Date | Changes |
+|---|---|---|
+| v1.0 | Jun 2026 | Initial gold layer. Five analytical tables + dashboard snapshot. |
