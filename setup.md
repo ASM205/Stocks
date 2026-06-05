@@ -1,9 +1,11 @@
-# Setup Guide
+# Sector Intelligence — Setup Guide
 
 ## Prerequisites
 
-- Microsoft Fabric trial or paid account → [app.fabric.microsoft.com](https://app.fabric.microsoft.com)
-- Alpaca Markets account (free) → [alpaca.markets](https://alpaca.markets) — choose Paper Trading, no deposit needed
+- A Microsoft account
+- A [Microsoft Fabric free trial](https://app.fabric.microsoft.com) workspace
+- A GitHub account with access to this repo
+- Your API credentials (key, secret, and base URL) for the data source
 
 ---
 
@@ -11,129 +13,120 @@
 
 1. Go to [app.fabric.microsoft.com](https://app.fabric.microsoft.com)
 2. Click **Workspaces** in the left sidebar → **New workspace**
-3. Give it any name (e.g. `sector-intelligence`)
+3. Give it a name (e.g. `Sector Intelligence`) and click **Apply**
+
+---
+
+## Step 2 — Open the Setup Notebook
+
+1. Download the notebook Setup.iynb from the notebooks folder
+2. Inside your workspace, click Import and Select Notebook   and upload the downloaded notebook
+
+---
+
+## Step 3 — Fill in Your Config
+
+At the top of the notebook, find the **Cell 1: Config** section and fill in your values:
+
+```python
+LAKEHOUSE_NAME  = "MyLakehouse"       # name for the lakehouse that will be created
+PIPELINE_NAME   = "MyPipeline"        # name for the pipeline that will be created
+GITHUB_TOKEN    = ""                  # leave empty — repo is public
+                                      # add a GitHub PAT if repo is private
+
+# Your data source API credentials
+API_KEY         = "your-api-key-here"
+API_SECRET      = "your-api-secret-here"
+```
+
+> **Never commit real API keys to the repo.** Only fill these in inside Fabric — they are injected at runtime and never written back to GitHub.
+
+---
+
+## Step 4 — Run the Setup Notebook
+
+1. Click **Run all** at the top of the notebook
+2. The notebook will automatically:
+   - Create a Lakehouse in your workspace
+   - Fetch all notebooks from GitHub and create them in your workspace
+   - Inject your API credentials into the ingestion notebook
+   - Create a pipeline that runs all notebooks in order
+3. Setup takes approximately 3–5 minutes to complete
+4. When done you will see a summary printed at the bottom confirming all item IDs
+
+If any step fails, check the error message — the most common cause is an incorrect API key or a Fabric provisioning delay. Simply re-run the notebook from the failed cell.
+
+---
+
+## Step 5 — Schedule the Pipeline
+
+1. In your workspace, open **MyPipeline** (or whatever name you set in config)
+2. Click **Schedule** in the top toolbar
+3. Set your preferred frequency (minimum interval is **1 minute** on Fabric free trial)
 4. Click **Apply**
 
----
-
-## Step 2 — Create a Lakehouse
-
-1. Inside your workspace click **New** → **Lakehouse**
-2. Give it a name — remember this name, you will need it in Step 3
-3. Click **Create**
+The pipeline runs all notebooks in order: Ingest → ProcessBronze → ProcessSilver → the final write step.
 
 ---
 
-## Step 3 — Configure Your Lakehouse Name
+## Step 6 — Connect Power BI
 
-1. Open `core/config.py` from this repo
-2. Set `LAKEHOUSE` to whatever you named your Lakehouse in Step 2:
-```python
-LAKEHOUSE = "your_lakehouse_name_here"
-```
-3. All table references (`BRONZE_TABLE`, `SILVER_DAILY`, etc.) will resolve automatically from this one value
-
----
-
-## Step 4 — Create the Setup Notebook
-
-1. Inside your Fabric workspace click **New** → **Notebook**
-2. Rename it `Setup`
-3. Attach it to your Lakehouse: click **Add Lakehouse** in the left panel → select the Lakehouse you created
-4. Copy the contents of `notebooks/Setup.ipynb` from this repo into the notebook, cell by cell
-5. Click **Run All**
-
-This will:
-- Download `config.py`, `ingest.py`, and `pipeline.py` from this repo into your Lakehouse
-- Create all Bronze, Silver, and Gold Delta tables
-
----
-
-## Step 5 — Get Your Alpaca API Keys
-
-1. Log into [alpaca.markets](https://alpaca.markets)
-2. Go to **Paper Trading** → **API Keys** → **Generate New Key**
-3. Copy the **API Key ID** and **Secret Key** — you will need these in Step 7
-
----
-
-## Step 6 — Import the Remaining Notebooks
-
-Repeat for each notebook below. For each one: **New → Notebook → rename → attach Lakehouse → paste cells**.
-
-| Notebook | File |
-|---|---|
-| `Setup` | `notebooks/1_Ingest.ipynb` |
-| `ProcessBronze` | `notebooks/2_ProcessBronze.ipynb` |
-| `ProcessSilver` | `notebooks/3_ProcessSilver.ipynb` |
-| `CreateMeasures` | `notebooks/4_GoldMeasures.ipynb` |
-
----
-
-## Step 7 — Run the Pipeline
-
-1. Open `Setup` notebook
-2. Run it — it will prompt you for your Alpaca keys:
-Enter Alpaca API key:
-Enter Alpaca secret:
-3. **First run only:** before running, set `INCREMENTAL = False` in `core/config.py` to fetch full history. Set it back to `True` after.
-4. Run notebooks in order: `Setup` → `ProcessBronze` → `ProcessSilver` → `CreateMeasures`
-
----
-## Step 8 — Connect Power BI Auto-Refresh
-
-To have the pipeline automatically refresh your Power BI semantic model after each run:
-
-1. Open your Power BI workspace in the browser
-2. Copy the **Workspace ID** from the URL:
-   `app.powerbi.com/groups/{WORKSPACE_ID}/...`
-3. Open your semantic model → Settings → copy the **Dataset ID** from the URL:
-   `app.powerbi.com/groups/.../datasets/{DATASET_ID}`
-4. Paste both into `core/config.py`:
-```python
-PBI_WORKSPACE_ID = "your_workspace_id_here"
-PBI_DATASET_ID   = "your_dataset_id_here"
-```
-5. If left as placeholders the pipeline will still run — only the Power BI refresh step will fail.
-
-## Expected Run Times
-
-| Mode | Approx Time |
-|---|---|
-| Full backfill (`INCREMENTAL=False`) | ~2 min |
-| Incremental (`INCREMENTAL=True`) | ~1 min |
+1. In your workspace, open the Lakehouse created in step 4
+2. Click **New semantic model** and select the tables written by the pipeline
+3. Open Power BI Desktop or use Power BI in the browser
+4. Connect to your Fabric Lakehouse via **OneLake data hub**
+5. Build your reports on top of the semantic model
 
 ---
 
 ## Troubleshooting
 
-**`ModuleNotFoundError: No module named 'config'`**
-The setup notebook did not finish downloading the core files. Re-run `Setup`.
+**Notebook creation fails with `PyToIPynbFailure`**
+The notebook `.py` format is incorrect. Make sure all notebooks in the `notebooks/` folder have the `# Fabric notebook source` header as the first line.
 
-**`AnalysisException: Table not found`**
-The Lakehouse name in `config.py` does not match the one you created. Check `LAKEHOUSE` in `core/config.py`.
+**`EntityNotFound` when creating the schedule**
+The pipeline was not fully provisioned yet. Wait 30 seconds and try scheduling again from the Fabric UI.
 
-**`0 bars returned` for a ticker**
-Normal for low-volume tickers (e.g. ESEA, FLGT) on quiet days. Not a pipeline error.
+**API keys not injected correctly**
+Make sure your ingestion notebook contains the exact placeholder lines:
+```python
+API_KEY      = ""
+API_SECRET   = ""
+API_BASE_URL = ""
+```
 
-**Alpaca 403 error**
-Your API keys are from Live Trading, not Paper Trading. Regenerate keys under the Paper Trading dashboard.
+**GitHub fetch returns 404**
+If the repo is private, generate a GitHub Personal Access Token at **GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens** with `Contents: Read` permission and paste it into `GITHUB_TOKEN` in Cell 1.
+
+**Pipeline runs but no data appears in Lakehouse**
+Run the notebooks manually in order (Ingest → ProcessBronze → ProcessSilver → final step) to see which one errors. Check that your API credentials are correct.
 
 ---
 
 ## Repo Structure
 
+```
 sector-intelligence/
-├── core/
-│   ├── config.py          ← watchlist, table names, pipeline flags
-│   ├── ingest.py          ← fetch_bars, fetch_all, write_bronze
-│   └── pipeline.py        ← run_pipeline entry point
 ├── notebooks/
-│   ├── 0_Setup.ipynb      ← run once to create tables
-│   ├── 1_Ingest.ipynb     ← fetches data from Alpaca
-│   ├── 2_ProcessBronze.ipynb
-│   ├── 3_ProcessSilver.ipynb
-│   └── 4_GoldMeasures.ipynb
-├── requirements.txt
-├── setup.md               ← you are here
-└── readme.md
+│   ├── 01_Ingest.ipynb          # Fetches raw data from API
+│   ├── 02_ProcessBronze.ipynb   # Initial cleaning and schema enforcement
+│   ├── 03_ProcessSilver.ipynb   # Transformation and enrichment
+│   ├── 04_...ipynb              # Writes final tables to Lakehouse
+│   └── Setup.ipynb              # This setup script (run once)
+├── core/
+│   ├── config.py                # Shared configuration
+│   ├── ingest.py                # Ingestion logic
+│   └── pipeline.py              # Pipeline helpers
+├── readme.md
+├── setup.md                     # You are here
+└── requirements.txt
+```
+
+---
+
+## Notes on the Free Trial
+
+- The Fabric free trial gives you **60 days** of access with capacity units included
+- The minimum pipeline schedule interval is **1 minute**
+- Lakehouses, Notebooks, and Pipelines are all available on the free trial
+- You do not need a Power BI Pro licence to view reports inside Fabric — only to share them externally
