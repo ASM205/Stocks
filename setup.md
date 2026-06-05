@@ -12,15 +12,15 @@
 ## Step 1 — Create a Fabric Workspace
 
 1. Go to [app.fabric.microsoft.com](https://app.fabric.microsoft.com)
-2. Click **Workspaces** in the left sidebar → **New workspace**
-3. Give it a name (e.g. `Sector Intelligence`) and click **Apply**
+2. Click **Workspaces** in the left sidebar → **New workspace** 
+3. Give it a name (e.g. `Sector Intelligence`) , Choose a suitable workspace type and click **Apply**
 
 ---
 
 ## Step 2 — Open the Setup Notebook
 
 1. Download the notebook Setup.iynb from the notebooks folder
-2. Inside your workspace, click Import and Select Notebook   and upload the downloaded notebook
+2. Inside your workspace, click Import and Select Notebook  and upload the downloaded notebook
 
 ---
 
@@ -31,12 +31,10 @@ At the top of the notebook, find the **Cell 1: Config** section and fill in your
 ```python
 LAKEHOUSE_NAME  = "MyLakehouse"       # name for the lakehouse that will be created
 PIPELINE_NAME   = "MyPipeline"        # name for the pipeline that will be created
-GITHUB_TOKEN    = ""                  # leave empty — repo is public
-                                      # add a GitHub PAT if repo is private
-
+            
 # Your data source API credentials
-API_KEY         = "your-api-key-here"
-API_SECRET      = "your-api-secret-here"
+ALPACA_KEY         = "your-api-key-here"
+ALPACA_SECRET      = "your-api-secret-here"
 ```
 
 > **Never commit real API keys to the repo.** Only fill these in inside Fabric — they are injected at runtime and never written back to GitHub.
