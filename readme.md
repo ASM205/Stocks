@@ -44,7 +44,7 @@ Tickers selected by market cap (top 5 per sub-industry). Each row in the Bronze 
 
 **Endpoint:**
 ```
-GET https://api.polygon.io/v2/aggs/ticker/{ticker}/range/{mult}/{timespan}/{from}/{to}
+GET  https://data.alpaca.markets/v2/stocks/bars
 ```
 Parameters: `adjusted=true`, `sort=asc`, `limit=50000`. Pagination follows `next_url` cursor automatically.
 
