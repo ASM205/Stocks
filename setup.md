@@ -48,11 +48,12 @@ PIPELINE_NAME   = "MyPipeline"        # name for the pipeline that will be creat
 
 If any step fails, check the error message — the most common cause is an incorrect API key or a Fabric provisioning delay. Simply re-run the notebook from the failed cell.
 5. Check that all notebooks are present int workspace and add api keys to the 1Ingest file.
-# Your data source API credentials
+
+Your data source API credentials
+```
 ALPACA_KEY         = "your-api-key-here"
 ALPACA_SECRET      = "your-api-secret-here"
 ```
-
 > **Never commit real API keys to the repo.** Only fill these in inside Fabric — they are injected at runtime and never written back to GitHub.
 6. Endure that the pipeline has been created
 

@@ -4,8 +4,8 @@
 # Sector Intelligence Pipeline — Bronze Layer
 
 **Platform:** Microsoft Fabric
-**Source:** Polygon.io REST API (Free Tier, 5 calls/min)
-**Table:** `Avi.dbo.bronze_bars_v2`
+**Source:** ALPACA REST API (Free Tier, 200 calls/min)
+**Table:** `bronze_bars_v2`
 **Tickers:** 29 across 6 GICS sub-industries
 **Granularities:** 1min (2d), 5min (30d), daily (180d)
 
