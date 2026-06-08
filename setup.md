@@ -47,7 +47,7 @@ PIPELINE_NAME   = "MyPipeline"        # name for the pipeline that will be creat
 4. When done you will see a summary printed at the bottom confirming all item IDs
 
 If any step fails, check the error message — the most common cause is an incorrect API key or a Fabric provisioning delay. Simply re-run the notebook from the failed cell.
-5. Check that all notebooks are present int workspace and add api keys to the 1Ingest file.
+5. Check that all notebooks are present in workspace and add api keys to the 1Ingest file.
 
 Your data source API credentials
 ```
